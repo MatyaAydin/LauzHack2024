@@ -19,9 +19,10 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class BoatTracker:
-    def __init__(self, input_video_path, mask_path="./data/background/clean_frame_mask.jpg"):
+    def __init__(self, input_video_path, mask_path="./data/background/clean_frame_mask.jpg", test = False):
         self.input_video_path = input_video_path
         self.mask_path = mask_path
+        self.test = test
 
         # Derive output paths relative to input video path
         base_name = os.path.splitext(os.path.basename(input_video_path))[0]
@@ -31,13 +32,13 @@ class BoatTracker:
         self.output_video_path = os.path.join(output_dir, f"{base_name}_tracked.mp4")
         self.csv_output_path = os.path.join(output_dir, f"{base_name}_tracking_log.csv")
 
-        # Initialize the YOLOv5 model
-        self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')  # Use YOLOv5s pretrained weights
+
+        self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s') 
 
         # Initialize the SORT tracker
         self.tracker = Sort()
 
-        # Object tracking data
+
         self.tracking_log = {}
         self.positions = {}
 
@@ -76,9 +77,9 @@ class BoatTracker:
         )
 
         # Calculate the starting frame and ending frame
-        start_frame = int(total_frames * 0.33)  # Jump to 33% of the video
+        start_frame = int(total_frames * 0.33)  if self.test else 0
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-        max_frames = int(frame_rate * 15)  # Number of frames for 15 seconds
+        max_frames = int(frame_rate * 15) if self.test else total_frames
 
         frame_count = 0
 
@@ -93,12 +94,12 @@ class BoatTracker:
             # Apply the mask to the frame
             masked_frame = cv2.bitwise_and(frame, frame, mask=mask)
 
-            # Run YOLOv5 detection
+
             results = self.model(masked_frame)
             detections = results.xyxy[0].cpu().numpy()
             boat_detections = []
 
-            # Filter for boats (class 8 in YOLOv5)
+
             for detection in detections:
                 x1, y1, x2, y2, conf, cls = detection
                 if int(cls) == 8:  # Ensure class 8 corresponds to boats
@@ -106,9 +107,8 @@ class BoatTracker:
 
             boat_detections = np.array(boat_detections)
             if boat_detections.size == 0:
-                boat_detections = np.empty((0, 5))  # Empty array with 5 columns
+                boat_detections = np.empty((0, 5))  
 
-            # Update tracker with detections
             tracked_objects = self.tracker.update(boat_detections)
 
             for obj in tracked_objects:
@@ -126,7 +126,7 @@ class BoatTracker:
                 else:
                     self.tracking_log[obj_id]['out'] = timestamp
 
-                # Draw bounding box
+
                 color = self.get_color(obj_id)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
@@ -136,7 +136,7 @@ class BoatTracker:
                 cv2.rectangle(frame, (x1, y1 - label_height - baseline), (x1 + label_width, y1), color, -1)  # Text background
                 cv2.putText(frame, label, (x1, y1 - baseline), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-            # Write the frame to output video
+
             out.write(frame)
 
         cap.release()
@@ -155,7 +155,7 @@ class BoatTracker:
                     if duration >= 10:  # Only log objects visible for 10 seconds or more
                         # Determine direction
                         delta_x = self.positions[obj_id]['last_x'] - self.positions[obj_id]['initial_x']
-                        direction = "Loading" if delta_x > 0 else "Unloading"
+                        direction = "up" if delta_x > 0 else "down"
 
                         writer.writerow({
                             'ID': obj_id,
