@@ -11,6 +11,7 @@ __pycache__/
 
 /data/videos
 /data/*.mp4
+/data/output/*.mp4
 /output/*.mp4
 
 yolov5s.pt
