@@ -29,13 +29,14 @@ class BoatTracker:
         output_dir = os.path.join(os.path.dirname(input_video_path), "output")
         os.makedirs(output_dir, exist_ok=True)
 
-        self.output_video_path = os.path.join(output_dir, f"{base_name}_tracked.mp4")
+        self.output_video_path = os.path.join(output_dir, f"{base_name}_tracked_test.mp4")
         self.csv_output_path = os.path.join(output_dir, f"{base_name}_tracking_log.csv")
 
 
         self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s') 
 
         # Initialize the SORT tracker
+        self.tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
         self.tracker = Sort()
 
 
@@ -176,6 +177,15 @@ class BoatTracker:
 
 
 if __name__ == "__main__":
-    input_video_path = "./data/segment_20241130_162116.mp4"
-    tracker = BoatTracker(input_video_path)
-    tracker.run()
+    # input_video_path = "./data/segment_20241130_162116.mp4"
+    # tracker = BoatTracker(input_video_path)
+    # tracker.run()
+    
+
+    for file in os.listdir("./data"):
+        if file.endswith(".mp4"):
+            print(f"Processing video: {file}")
+            input_video_path = os.path.join("./data", file)
+            tracker = BoatTracker(input_video_path, test=False)
+            tracker.run()
+
