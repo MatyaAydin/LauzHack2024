@@ -1,39 +1,44 @@
 from OPEN_AI_KEY import key
 from langchain.llms import OpenAI
+from os import listdir
+from os.path import isfile, join
+path = './csvs'
+onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
+
 
 
 
 
 llm = OpenAI(temperature=0, openai_api_key=key)
 
-prompt_request = "How many boats passed from 5pm to 8pm?"
+#Initial request caught from user
 
-prompt = f"""
-Given the following request:
+prompt_request = "How many boats passed from 5pm to 8pm on the 30th of november?"
+
+prompt_about_time = f"""
+
+Given the following prompt:
+
 {prompt_request}
 
+Extract only the information about time in a format such as from [starting hour] to [ending hour] on the [date]
+"""
 
-Answer only in the following format:
-count-start-end
+#Information about time only
+answer_time = llm.invoke(prompt_about_time)
 
-where start and end are the starting and ending hours the user want the count to end. Use a 24 hours scale
+print(answer_time)
+
+
+prompt = f"""
+Given the following timestamp:
+{answer_time}
+
+Return all the csv names that are relevant to answer the question. Here are the csv. the format is day_month-starthour-endhour. Return the names only.
+{onlyfiles}
 """
 
 answer = llm.invoke(prompt)
 
 
-answer_to_question = 5
-
-prompt_answer = f"""
-Someones asked the following: {prompt_request}
-
-We got the following answer: {answer_to_question}
-
-Format a nice answer to the question
-"""
-
-final_answer = llm.invoke(prompt_answer)
-
-
-
-print(final_answer)
+print(answer)
